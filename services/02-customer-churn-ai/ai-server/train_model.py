@@ -1,27 +1,66 @@
-import pandas as pd
-import joblib
+# train_model.py
 
-from sklearn.datasets import fetch_california_housing
+# ---------------------------------------------
+#    1. 라이브러리 import
+# ---------------------------------------------
+import pandas as pd
+
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestClassifier
+
+import joblib
 from sklearn.metrics import (
-    r2_score,
-    mean_absolute_error,
-    root_mean_squared_error
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score
 )
 
-# 데이터 불러오기
-housing = fetch_california_housing(as_frame=True)
-
-df = housing.frame
+# ---------------------------------------------
+#    2. 데이터 불러오기
+# ---------------------------------------------
+df = pd.read_csv("data/ibm_telco.csv")
 
 print(df.head())
+print(df.info())
+print(df.columns)
+print(df["Churn Label"].value_counts())     # Target(y) 확인
 
-# Feature(X): 입력값, Target(y): 정답(예측값) 분리
-X = df.drop(columns=["MedHouseVal"])
-y = df["MedHouseVal"]
 
-# Train / Test 분리
+# ---------------------------------------------
+#    3. 데이터 전처리
+# ---------------------------------------------
+# Target(Churn Label) 문자값('Yes','No')을 숫자로 변환
+df['Churn Label'] = df['Churn Label'].map({
+    'Yes': 1,
+    'No': 0 
+})
+
+print(df["Churn Label"].value_counts())     # Target(y) 확인
+
+drop_columns = [
+    "Customer ID",
+    "Customer Status",
+    "Churn Score",
+    "Churn Category",
+    "Churn Reason"
+]
+
+df = df.drop(columns=drop_columns)
+
+# ---------------------------------------------
+#    4. X, y 분리
+#    Feature(X)-입력값, Target(y)-출력값,정답
+# ---------------------------------------------
+X = df.drop(columns=['Churn Label'])
+y = df['Churn Label']
+
+# 문자형 컬럼을 숫자형 컬럼으로 변환
+X = pd.get_dummies(X)
+
+# ---------------------------------------------
+#    5. Train/Test
+# ---------------------------------------------
 X_train, X_test, y_train, y_test = train_test_split(
     X,
     y,
@@ -29,41 +68,43 @@ X_train, X_test, y_train, y_test = train_test_split(
     random_state=42
 )
 
-# RandomForest 모델 생성
-model = RandomForestRegressor(
+
+print(X_train.shape)
+print(X_test.shape)
+
+print(y_train.shape)
+print(y_test.shape)
+
+
+# ---------------------------------------------
+#    6. 모델 생성
+# ---------------------------------------------
+model = RandomForestClassifier(
     random_state=42
 )
 
-
-# 학습
+# ---------------------------------------------
+#    7. 학습
+# ---------------------------------------------
+# 학습시 문자(String)를 그대로 학습할 수 없다.
 model.fit(X_train, y_train)
+# print(X.dtypes)
 
-
-# 예측
+# ---------------------------------------------
+#    8. 예측
+# ---------------------------------------------
 pred = model.predict(X_test)
+sample = X_test.iloc[[0]]
 
-result_df = pd.DataFrame({
-    "Actual": y_test.values,
-    "Predict": pred
-})
+print(sample)
 
-print(result_df.head(10))
-result_df["Error"] = result_df["Actual"] - result_df["Predict"]
 
-print(result_df.head(10))
-r2 = r2_score(y_test, pred) # 얼마나 잘 맞았는가?
-mae = mean_absolute_error(y_test, pred) # 평균적으로 얼마나 틀렸는가?
-rmse = root_mean_squared_error(y_test, pred) # 큰 오차까지 고려한 평균 오차
-
-print(f"R²   : {r2:.4f}")   # 0.8044
-print(f"MAE  : {mae:.4f}")  # 0.3278
-print(f"RMSE : {rmse:.4f}") # 0.5063
-print(df.head())
 print(pred[:10])
 
-
-# 모델 저장
+# ---------------------------------------------
+#    9. 모델 저장
+# ---------------------------------------------
 joblib.dump(
     model,
-    "models/house_price_model.pkl"
+    "models/customer_churn_model.pkl"
 )

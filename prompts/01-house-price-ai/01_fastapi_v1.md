@@ -45,4 +45,6 @@
 이 문서의 요구사항을 모두 수행하여
 services/01-house-price-ai/ai-server/main.py
 파일을 완성해주세요.
+commit
+
 ```
